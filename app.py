@@ -1,3 +1,4 @@
+# app.py
 import os
 from flask import Flask, request, jsonify
 from slack_sdk import WebClient
@@ -5,7 +6,7 @@ from slack_sdk.errors import SlackApiError
 from slack_bolt.adapter.flask import SlackRequestHandler
 from slack_bolt import App
 from dotenv import find_dotenv, load_dotenv
-from functions import draft_email
+from functions import draft_email, openai_assistant_function
 
 import openai
 from openai import OpenAI
@@ -88,8 +89,16 @@ def handle_mentions(body, say):
 
     say("This is a test integartion with OpenAI, I'm processing your request.")
     # response = my_function(text)
-    response = draft_email(text)
+    # response = draft_email(text)
+    # response = openai_assistant_function(text)
+    # say(response)
+
+    # Call the openai_assistant_function and use say to send the response
+    response = openai_assistant_function(text)
     say(response)
+
+    # Call the openai_assistant_function with the say function
+    # openai_assistant_function(text, say_func=say)
 
 @flask_app.route("/slack/events", methods=["POST"])
 def slack_events():
@@ -103,31 +112,14 @@ def slack_events():
     return handler.handle(request)
 
 
-# @flask_app.route('/slack/events', methods=['POST'])
-# def slack_events():
-#     data = request.json
+# Route for handling OpenAI assistant requests
+@flask_app.route("/openai-assistant", methods=["POST"])
+def openai_assistant_route():
+    data = request.json
+    user_input = data.get("user_input", "")
+    response = openai_assistant_function(user_input)
+    return jsonify({"response": response})
 
-#     # Check if the request is a challenge request
-#     if 'challenge' in data:
-#         return jsonify({"challenge": data["challenge"]})
-
-#     try:
-#         # Handle other events here
-#         # For example, you can process mentions
-#         if "event" in data and "text" in data["event"]:
-#             text = data["event"]["text"]
-#             mention = f"<@{SLACK_BOT_USER_ID}>"
-#             text = text.replace(mention, "").strip()
-#             response = my_function(text)
-#             app.client.chat_postMessage(
-#                 channel=data["event"]["channel"],
-#                 text=response
-#             )
-
-#     except Exception as e:
-#         print(f"Error handling event: {e}")
-
-#     return jsonify({"message": "Event received"})
 
 # Run the Flask app
 if __name__ == "__main__":
