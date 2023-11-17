@@ -122,7 +122,7 @@ def perform_openai_operations(user_input):
         run = client.beta.threads.runs.create(
             thread_id=thread.id,
             assistant_id=assistant_id,
-            instructions="Use the overview file to triage the user asking more questions about his query. Use max 20 words in your response."
+            instructions="Use max 20 words in your response."
         )
 
         # Wait for the run to complete (simple polling mechanism)
@@ -137,6 +137,7 @@ def perform_openai_operations(user_input):
         messages = client.beta.threads.messages.list(
             thread_id=thread.id
         )
+        print(thread.id)
 
         # Process the messages as needed
         response_content = None

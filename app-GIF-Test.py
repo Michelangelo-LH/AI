@@ -4,10 +4,14 @@ from flask import Flask, request, jsonify
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 from slack_bolt.adapter.flask import SlackRequestHandler
+from slack_bolt import BoltResponse
+from slack_sdk.models.blocks import ImageBlock
+from slack_sdk.errors import SlackApiError
 from slack_bolt import App
 from dotenv import find_dotenv, load_dotenv
 from functions import draft_email, openai_assistant_function
-
+import requests
+from io import BytesIO
 import openai
 from openai import OpenAI
 from openai import OpenAIError  # Corrected import statement for OpenAI errors
@@ -41,6 +45,8 @@ app = App(token=SLACK_BOT_TOKEN)
 flask_app = Flask(__name__)
 handler = SlackRequestHandler(app)
 
+flask_app = Flask(__name__, static_folder=os.path.abspath(os.path.dirname(__file__)))
+
 
 def get_bot_user_id():
     """
@@ -73,32 +79,54 @@ def my_function(text):
 
 
 @app.event("app_mention")
-def handle_mentions(body, say):
-    """
-    Event listener for mentions in Slack.
-    When the bot is mentioned, this function processes the text and sends a response.
-
-    Args:
-        body (dict): The event data received from Slack.
-        say (callable): A function for sending a response to the channel.
-    """
+def handle_mentions(body, say, client):
     text = body["event"]["text"]
-
     mention = f"<@{SLACK_BOT_USER_ID}>"
     text = text.replace(mention, "").strip()
 
-    say("This is a test integartion with OpenAI, I'm processing your request...")
-    # response = my_function(text)
-    # response = draft_email(text)
-    # response = openai_assistant_function(text)
-    # say(response)
+    # Define the URL of your animated GIF
+    gif_url = "https://jioavanzado.files.wordpress.com/2015/10/output_hpa9dl.gif"  # Replace with your actual GIF URL
 
-    # Call the openai_assistant_function and use say to send the response
-    response = openai_assistant_function(text)
-    say(response)
+    blocks = [
+        ImageBlock(
+            image_url=gif_url,
+            alt_text="Processing GIF",
+        ),
+    ]
 
-    # Call the openai_assistant_function with the say function
-    # openai_assistant_function(text, say_func=say)
+    try:
+        say(text="Processing your request...", blocks=blocks)
+    except SlackApiError as e:
+        print(f"Error sending message: {e}")
+
+    # Download the animated GIF content
+    gif_content = requests.get(gif_url).content
+
+    # Upload the animated GIF file
+    try:
+        response = client.files_upload_v2(
+            channels=body["event"]["channel"],
+            title="Processing GIF",
+            file=BytesIO(gif_content),
+            initial_comment="Here is a GIF to illustrate processing.",
+        )
+
+        # Log when the image is uploaded
+        print(f"Image uploaded. URL: {response['file']['url_private']}")
+
+        # Process the user's request using the openai_assistant_function
+        response = openai_assistant_function(text)
+        say(response)
+
+        # Check if the response is a dictionary and contains a file ID
+        if isinstance(response, dict) and "file" in response:
+            # Delete the uploaded GIF file
+            client.files_delete_v2(file=response["file"]["id"])
+
+            # Log when the image is deleted
+            print(f"Image deleted. File ID: {response['file']['id']}")
+    except SlackApiError as e:
+        print(f"Error uploading GIF or processing request: {e}")
 
 @flask_app.route("/slack/events", methods=["POST"])
 def slack_events():
