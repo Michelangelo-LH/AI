@@ -25,6 +25,12 @@ file = client.files.create(
   purpose='assistants'
 )
 
+# Uploade file
+file = client.files.create(
+  file=open("data/files/Search Filter Usage_Filter distributions_Table.csv", "rb"),
+  purpose='assistants'
+)
+
 # Create Assistant
 my_assistant = openai.beta.assistants.create(
     description="Brand Platform Assistant",
@@ -71,6 +77,7 @@ run = client.beta.threads.runs.create(
   thread_id=thread.id,
   assistant_id=my_assistant.id,
   instructions="Use the overview file to triage the user asking more questions about his query.",
+  file_ids=[file.id]
 )
 
 run = client.beta.threads.runs.retrieve(

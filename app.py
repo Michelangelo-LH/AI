@@ -6,7 +6,7 @@ from slack_sdk.errors import SlackApiError
 from slack_bolt.adapter.flask import SlackRequestHandler
 from slack_bolt import App
 from dotenv import find_dotenv, load_dotenv
-from functions import draft_email, openai_assistant_function
+from functions import openai_assistant_function
 
 import openai
 from openai import OpenAI
@@ -117,8 +117,12 @@ def slack_events():
 def openai_assistant_route():
     data = request.json
     user_input = data.get("user_input", "")
+    
+    # Call the openai_assistant_function with the user_input
     response = openai_assistant_function(user_input)
+
     return jsonify({"response": response})
+
 
 
 # Run the Flask app
